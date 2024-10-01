@@ -17,10 +17,6 @@ func NewFieldElement(num, prime *big.Int) FieldElement {
 	return FieldElement{new(big.Int).Set(num), new(big.Int).Set(prime)}
 }
 
-func (e FieldElement) Value() *big.Int {
-	return new(big.Int).Mod(e.Num, e.Prime)
-}
-
 func (e FieldElement) Equals(other FieldElement) bool {
 	return e.Num.Cmp(other.Num) == 0 && e.Prime.Cmp(other.Prime) == 0
 }

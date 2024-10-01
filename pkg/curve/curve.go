@@ -1,7 +1,6 @@
 package curve
 
 import (
-	"fmt"
 	"golang-bitcoin/pkg/field"
 	"math/big"
 )
@@ -11,17 +10,20 @@ type Point struct {
 }
 
 func NewPoint(x, y, a, b field.FieldElement) Point {
-	left := y.Pow(big.NewInt(2))
-	right := x.Pow(big.NewInt(3)).Add(a.Multiply(x)).Add(b)
-	isInf := x.Value().Cmp(big.NewInt(0)) == 0 && y.Value().Cmp(big.NewInt(0)) == 0
-	if !isInf && !left.Equals(right) {
-		panic("Point not on curve")
+	isInf := x.Num.Cmp(big.NewInt(0)) == 0 && y.Num.Cmp(big.NewInt(0)) == 0
+	if !isInf {
+		left := y.Pow(big.NewInt(2))
+		right := x.Pow(big.NewInt(3)).Add(a.Multiply(x)).Add(b)
+		if  !left.Equals(right) {
+			panic("Point not on curve")
+		}
 	}
+		
 	return Point{x, y, a, b}
 }
 
 func (p1 Point) IsInf() bool {
-	return p1.x.Value().Cmp(big.NewInt(0)) == 0 && p1.y.Value().Cmp(big.NewInt(0)) == 0
+	return p1.x.Num.Cmp(big.NewInt(0)) == 0 && p1.y.Num.Cmp(big.NewInt(0)) == 0
 }
 
 func (p1 Point) IsOnSameCurve(p2 Point) bool {
@@ -53,14 +55,13 @@ func (p1 Point) Add(p2 Point) Point {
 		}
 		// NOTE: 加法逆元との加算
 		if p1.x.Equals(p2.x) && !p1.y.Equals(p2.y) {
-			return NewPoint(p1.x, p1.y, p1.a, p1.b)
+			return NewPoint(field.NewFieldElement(big.NewInt(0), p1.a.Prime), field.NewFieldElement(big.NewInt(0), p1.a.Prime), p1.a, p1.b)
 		}
 		// NOTE: 異なる点同士の加算
 		if !p1.x.Equals(p2.x) {
 			s := p2.y.Subtract(p1.y).Divide(p2.x.Subtract(p1.x))
 			x := s.Pow(big.NewInt(2)).Subtract(p1.x).Subtract(p2.x)
 			y := s.Multiply(p1.x.Subtract(x)).Subtract(p1.y)
-			fmt.Println(s, x, y, p1.a, p1.b)
 			return NewPoint(x, y, p1.a, p1.b)
 		}
 		zero := field.NewFieldElement(big.NewInt(0), p1.a.Prime)
