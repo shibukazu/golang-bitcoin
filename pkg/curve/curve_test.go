@@ -2,6 +2,7 @@ package curve
 
 import (
 	"golang-bitcoin/pkg/field"
+	"math/big"
 	"reflect"
 	"testing"
 )
@@ -11,9 +12,9 @@ func TestNewPoint(t *testing.T) {
 		x field.FieldElement
 		y field.FieldElement
 	}
-	prime := 223
-	a := field.NewFieldElement(0, prime)
-	b := field.NewFieldElement(7, prime)
+	prime := big.NewInt(223)
+	a := field.NewFieldElement(big.NewInt(0), prime)
+	b := field.NewFieldElement(big.NewInt(7), prime)
 	tests := []struct {
 		name      string
 		args      args
@@ -22,16 +23,16 @@ func TestNewPoint(t *testing.T) {
 		{
 			name: "valid point",
 			args: args{
-				x: field.NewFieldElement(192, prime),
-				y: field.NewFieldElement(105, prime),
+				x: field.NewFieldElement(big.NewInt(192), prime),
+				y: field.NewFieldElement(big.NewInt(105), prime),
 			},
 			wantPanic: false,
 		},
 		{
 			name: "invalid point",
 			args: args{
-				x: field.NewFieldElement(200, prime),
-				y: field.NewFieldElement(119, prime),
+				x: field.NewFieldElement(big.NewInt(200), prime),
+				y: field.NewFieldElement(big.NewInt(119), prime),
 			},
 			wantPanic: true,
 		},
@@ -59,9 +60,9 @@ func TestPoint_Add(t *testing.T) {
 		x field.FieldElement
 		y field.FieldElement
 	}
-	prime := 223
-	a := field.NewFieldElement(0, prime)
-	b := field.NewFieldElement(7, prime)
+	prime := big.NewInt(223)
+	a := field.NewFieldElement(big.NewInt(0), prime)
+	b := field.NewFieldElement(big.NewInt(7), prime)
 	tests := []struct {
 		name   string
 		fields fields
@@ -71,16 +72,16 @@ func TestPoint_Add(t *testing.T) {
 		{
 			name: "Addition of two points on the same curve 1",
 			fields: fields{
-				x: field.NewFieldElement(170, prime),
-				y: field.NewFieldElement(142, prime),
+				x: field.NewFieldElement(big.NewInt(170), prime),
+				y: field.NewFieldElement(big.NewInt(142), prime),
 			},
 			args: args{
-				x: field.NewFieldElement(60, prime),
-				y: field.NewFieldElement(139, prime),
+				x: field.NewFieldElement(big.NewInt(60), prime),
+				y: field.NewFieldElement(big.NewInt(139), prime),
 			},
 			want: Point{
-				x: field.NewFieldElement(220, prime),
-				y: field.NewFieldElement(181, prime),
+				x: field.NewFieldElement(big.NewInt(220), prime),
+				y: field.NewFieldElement(big.NewInt(181), prime),
 				a: a,
 				b: b,
 			},
@@ -88,16 +89,16 @@ func TestPoint_Add(t *testing.T) {
 		{
 			name: "Addition of two points on the same curve 2",
 			fields: fields{
-				x: field.NewFieldElement(47, prime),
-				y: field.NewFieldElement(71, prime),
+				x: field.NewFieldElement(big.NewInt(47), prime),
+				y: field.NewFieldElement(big.NewInt(71), prime),
 			},
 			args: args{
-				x: field.NewFieldElement(17, prime),
-				y: field.NewFieldElement(56, prime),
+				x: field.NewFieldElement(big.NewInt(17), prime),
+				y: field.NewFieldElement(big.NewInt(56), prime),
 			},
 			want: Point{
-				x: field.NewFieldElement(215, prime),
-				y: field.NewFieldElement(68, prime),
+				x: field.NewFieldElement(big.NewInt(215), prime),
+				y: field.NewFieldElement(big.NewInt(68), prime),
 				a: a,
 				b: b,
 			},
