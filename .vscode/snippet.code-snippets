@@ -1,0 +1,17 @@
+{
+  "todo comment": {
+    "prefix": "todo",
+    "body": ["// TODO: $1"],
+    "description": "TODO comment"
+  },
+  "note comment": {
+    "prefix": "note",
+    "body": ["// NOTE: $1"],
+    "description": "NOTE comment"
+  },
+  "next comment": {
+    "prefix": "next",
+    "body": ["//       $1"],
+    "description": "next line comment"
+  },
+}
