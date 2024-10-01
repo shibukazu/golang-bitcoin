@@ -12,6 +12,10 @@ func NewFieldElement(num, prime int) FieldElement {
 	return FieldElement{num, prime}
 }
 
+func (e FieldElement) Value() int {
+	return e.Num % e.Prime
+}
+
 func (e FieldElement) Equals(other FieldElement) bool {
 	return e.Num == other.Num && e.Prime == other.Prime
 }
