@@ -14,12 +14,20 @@ func NewPoint(x, y, a, b field.FieldElement) Point {
 	if !isInf {
 		left := y.Pow(big.NewInt(2))
 		right := x.Pow(big.NewInt(3)).Add(a.Multiply(x)).Add(b)
-		if  !left.Equals(right) {
+		if !left.Equals(right) {
 			panic("Point not on curve")
 		}
 	}
-		
+
 	return Point{x, y, a, b}
+}
+
+func (p1 Point) X() *big.Int {
+	return p1.x.Num
+}
+
+func (p1 Point) Y() *big.Int {
+	return p1.y.Num
 }
 
 func (p1 Point) IsInf() bool {
