@@ -59,8 +59,57 @@ func (p Secp256k1Point) Serialize(compressed bool) []byte {
 
 		return serialized
 	} else {
-		return nil
+		isEven := p.Y().Bit(0) == 0
+
+		var marker byte
+		if isEven {
+			marker = byte(2)
+		} else {
+			marker = byte(3)
+		}
+
+		x := padTo32Bytes(p.X().Bytes())
+		serialized := make([]byte, 0, len(x)+1)
+		serialized = append(serialized, marker)
+		serialized = append(serialized, x...)
+
+		return serialized
 	}
+}
+
+func DeserializeSecp256k1Point(serialized []byte) Secp256k1Point {
+	marker := serialized[0]
+	x := new(big.Int).SetBytes(serialized[1:33])
+	var y *big.Int
+	if marker == 4 {
+		y = new(big.Int).SetBytes(serialized[33:])
+	} else {
+		right := new(big.Int).Exp(x, big.NewInt(3), NewSecp256p())
+		right = right.Add(right, big.NewInt(7))
+		right = right.Mod(right, NewSecp256p())
+
+		y = new(big.Int).ModSqrt(right, NewSecp256p())
+
+		var even_y *big.Int
+		var odd_y *big.Int
+		s256p := NewSecp256p()
+		if y.Bit(0) == 0 {
+			even_y = y
+			odd_y = new(big.Int).Sub(s256p, y)
+		} else {
+			even_y = new(big.Int).Sub(s256p, y)
+			odd_y = y
+		}
+
+		isEven := marker == 2
+		if isEven {
+			y = even_y
+		} else {
+			y = odd_y
+		}
+	}
+
+	return NewSecp256k1Point(x, y)
 }
 
 func NewSecp256k1FieldElement(num *big.Int) Secp256k1FieldElement {
