@@ -31,7 +31,7 @@ func (s Signature) Seriarize() []byte {
 	if rbin[0]&0x80 != 0 {
 		rbin = append([]byte{0x00}, rbin...)
 	}
-	rbin = append([]byte{0x02}, rbin...)
+	rbin = append([]byte{0x02, byte(len(rbin))}, rbin...)
 
 	sbin := s.s.Bytes()
 	for len(sbin) > 0 && sbin[0] == 0 {
@@ -40,7 +40,7 @@ func (s Signature) Seriarize() []byte {
 	if sbin[0]&0x80 != 0 {
 		sbin = append([]byte{0x00}, sbin...)
 	}
-	sbin = append([]byte{0x02}, sbin...)
+	sbin = append([]byte{0x02, byte(len(sbin))}, sbin...)
 
 	return append(marker, append(rbin, sbin...)...)
 }

@@ -4,6 +4,7 @@ import (
 	"golang-bitcoin/pkg/curve"
 	"golang-bitcoin/pkg/field"
 	"golang-bitcoin/pkg/signature"
+	"golang-bitcoin/pkg/utils"
 	"math/big"
 
 	"github.com/btcsuite/btcutil/base58"
@@ -52,8 +53,8 @@ func (p Secp256k1Point) Verify(z *big.Int, sig signature.Signature) bool {
 func (p Secp256k1Point) Serialize(compressed bool) []byte {
 	if !compressed {
 		marker := byte(4)
-		x := padTo32Bytes(p.X().Bytes())
-		y := padTo32Bytes(p.Y().Bytes())
+		x := utils.PadTo32Bytes(p.X().Bytes())
+		y := utils.PadTo32Bytes(p.Y().Bytes())
 		serialized := make([]byte, 0, len(x)+len(y)+2)
 		serialized = append(serialized, marker)
 		serialized = append(serialized, x...)
@@ -70,7 +71,7 @@ func (p Secp256k1Point) Serialize(compressed bool) []byte {
 			marker = byte(3)
 		}
 
-		x := padTo32Bytes(p.X().Bytes())
+		x := utils.PadTo32Bytes(p.X().Bytes())
 		serialized := make([]byte, 0, len(x)+1)
 		serialized = append(serialized, marker)
 		serialized = append(serialized, x...)
@@ -117,7 +118,7 @@ func DeserializeSecp256k1Point(serialized []byte) Secp256k1Point {
 func (p Secp256k1Point) Address(compressed bool, testnet bool) string {
 	serialized := p.Serialize(compressed)
 
-	seriarized160 := hash160(serialized)
+	seriarized160 := utils.Hash160(serialized)
 
 	var prefix []byte
 	if testnet {
@@ -127,7 +128,7 @@ func (p Secp256k1Point) Address(compressed bool, testnet bool) string {
 	}
 
 	joint := append(prefix, seriarized160...)
-	checksum := hash256(joint)[:4]
+	checksum := utils.Hash256(joint)[:4]
 
 	return base58.Encode(append(joint, checksum...))
 

@@ -1,4 +1,4 @@
-package secp256k1
+package utils
 
 import (
 	"crypto/sha256"
@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
-func padTo32Bytes(input []byte) []byte {
+func PadTo32Bytes(input []byte) []byte {
 	if len(input) == 32 {
 		return input
 	}
@@ -16,7 +16,7 @@ func padTo32Bytes(input []byte) []byte {
 	return padded
 }
 
-func hash160(data []byte) []byte {
+func Hash160(data []byte) []byte {
 	h := sha256.New()
 	h.Write(data)
 	hashed := h.Sum(nil)
@@ -26,7 +26,7 @@ func hash160(data []byte) []byte {
 	return h2.Sum(nil)
 }
 
-func hash256(data []byte) []byte {
+func Hash256(data []byte) []byte {
 	h := sha256.New()
 	h.Write(data)
 	hashed := h.Sum(nil)
