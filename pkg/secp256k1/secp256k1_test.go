@@ -143,7 +143,7 @@ func TestSecp256k1Point_Address(t *testing.T) {
 	tests := []struct {
 		name            string
 		fieldsGenerator func() fields
-		args  args
+		args            args
 		want            string
 	}{
 		{
@@ -160,6 +160,37 @@ func TestSecp256k1Point_Address(t *testing.T) {
 				testnet:    true,
 			},
 			want: "mmTPbXQFxboEtNRkwfh6K51jvdtHLxGeMA",
+		},
+		{
+			name: "test net, compressed case 1",
+			fieldsGenerator: func() fields {
+				e := big.NewInt(2020)
+				e = e.Exp(e, big.NewInt(5), nil)
+				P := NewSecp256k1G().Multiply(e)
+				return fields{
+					Point: P,
+				}
+			},
+			args: args{
+				compressed: true,
+				testnet:    true,
+			},
+			want: "mopVkxp8UhXqRYbCYJsbeE1h1fiF64jcoH",
+		},
+		{
+			name: "main net, compressed case 1",
+			fieldsGenerator: func() fields {
+				e, _ := new(big.Int).SetString("12345deadbeef", 16)
+				P := NewSecp256k1G().Multiply(e)
+				return fields{
+					Point: P,
+				}
+			},
+			args: args{
+				compressed: true,
+				testnet:    false,
+			},
+			want: "1F1Pn2y6pDb68E5nYJJeba4TLg2U7B6KF1",
 		},
 	}
 	for _, tt := range tests {
