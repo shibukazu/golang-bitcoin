@@ -22,7 +22,7 @@ func (s Signature) Equals(other Signature) bool {
 	return s.r.Cmp(other.r) == 0 && s.s.Cmp(other.s) == 0
 }
 
-func (s Signature) Seriarize() []byte {
+func (s Signature) Serialize() []byte {
 	marker := []byte{0x30}
 	rbin := s.r.Bytes()
 	for len(rbin) > 0 && rbin[0] == 0 {

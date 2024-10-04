@@ -118,7 +118,7 @@ func DeserializeSecp256k1Point(serialized []byte) Secp256k1Point {
 func (p Secp256k1Point) Address(compressed bool, testnet bool) string {
 	serialized := p.Serialize(compressed)
 
-	seriarized160 := utils.Hash160(serialized)
+	serialized160 := utils.Hash160(serialized)
 
 	var prefix []byte
 	if testnet {
@@ -127,7 +127,7 @@ func (p Secp256k1Point) Address(compressed bool, testnet bool) string {
 		prefix = []byte{0x00}
 	}
 
-	joint := append(prefix, seriarized160...)
+	joint := append(prefix, serialized160...)
 	checksum := utils.Hash256(joint)[:4]
 
 	return base58.Encode(append(joint, checksum...))
