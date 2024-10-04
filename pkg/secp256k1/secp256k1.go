@@ -5,6 +5,8 @@ import (
 	"golang-bitcoin/pkg/field"
 	"golang-bitcoin/pkg/signature"
 	"math/big"
+
+	"github.com/btcsuite/btcutil/base58"
 )
 
 const (
@@ -110,6 +112,25 @@ func DeserializeSecp256k1Point(serialized []byte) Secp256k1Point {
 	}
 
 	return NewSecp256k1Point(x, y)
+}
+
+func (p Secp256k1Point) Address(compressed bool, testnet bool) string {
+	serialized := p.Serialize(compressed)
+
+	seriarized160 := hash160(serialized)
+
+	var prefix []byte
+	if testnet {
+		prefix = []byte{0x6f}
+	} else {
+		prefix = []byte{0x00}
+	}
+
+	joint := append(prefix, seriarized160...)
+	checksum := hash256(joint)[:4]
+
+	return base58.Encode(append(joint, checksum...))
+
 }
 
 func NewSecp256k1FieldElement(num *big.Int) Secp256k1FieldElement {

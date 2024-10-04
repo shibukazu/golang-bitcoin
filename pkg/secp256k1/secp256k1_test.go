@@ -131,3 +131,46 @@ func TestDeserializeSecp256k1Point(t *testing.T) {
 		})
 	}
 }
+
+func TestSecp256k1Point_Address(t *testing.T) {
+	type fields struct {
+		Point curve.Point
+	}
+	type args struct {
+		compressed bool
+		testnet    bool
+	}
+	tests := []struct {
+		name            string
+		fieldsGenerator func() fields
+		args  args
+		want            string
+	}{
+		{
+			name: "test net, uncompressed case 1",
+			fieldsGenerator: func() fields {
+				e := big.NewInt(5002)
+				P := NewSecp256k1G().Multiply(e)
+				return fields{
+					Point: P,
+				}
+			},
+			args: args{
+				compressed: false,
+				testnet:    true,
+			},
+			want: "mmTPbXQFxboEtNRkwfh6K51jvdtHLxGeMA",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fields := tt.fieldsGenerator()
+			p := Secp256k1Point{
+				Point: fields.Point,
+			}
+			if got := p.Address(tt.args.compressed, tt.args.testnet); got != tt.want {
+				t.Errorf("Secp256k1Point.Address() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
