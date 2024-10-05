@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"golang-bitcoin/pkg/utils"
 	"io"
 	"net/http"
 )
@@ -46,7 +47,7 @@ func ParseTransaction(reader io.Reader) (*Transaction, error) {
 	}
 	version = binary.LittleEndian.Uint32(buf)
 
-	numInputs, err := ParseVarInt(reader)
+	numInputs, err := utils.ParseVarInt(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func ParseTransaction(reader io.Reader) (*Transaction, error) {
 		inputs[i], err = ParseInput(reader)
 	}
 
-	numOutputs, err := ParseVarInt(reader)
+	numOutputs, err := utils.ParseVarInt(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func (t *Transaction) Serialize() ([]byte, error) {
 	var serialized []byte
 	binary.LittleEndian.PutUint32(serialized, t.Version)
 
-	numInputs, err := SerializeVarInt(uint64(len(t.Inputs)))
+	numInputs, err := utils.SerializeVarInt(uint64(len(t.Inputs)))
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func (t *Transaction) Serialize() ([]byte, error) {
 		serialized = append(serialized, input.Serialize()...)
 	}
 
-	numOutputs, err := SerializeVarInt(uint64(len(t.Outputs)))
+	numOutputs, err := utils.SerializeVarInt(uint64(len(t.Outputs)))
 	if err != nil {
 		return nil, err
 	}
