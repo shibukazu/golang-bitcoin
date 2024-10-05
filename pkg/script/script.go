@@ -13,21 +13,21 @@ const (
 	OP_HASH256   = 0xaa
 	OP_PUSHDATA1 = 0x4c
 	OP_PUSHDATA2 = 0x4d
+	OP_CHECKSIG  = 0xac
 )
 
-type Stack [][]byte
-
 type Script struct {
-	Instructions Stack
+	Instructions [][]byte
+	Stack        [][]byte
 }
 
 func NewScript() *Script {
 	return &Script{
-		Instructions: make(Stack, 0),
+		Instructions: make([][]byte, 0),
 	}
 }
 
-func OpDup(stack Stack) Stack {
+func OpDup(stack [][]byte) [][]byte {
 	if len(stack) < 1 {
 		return stack
 	}
@@ -35,7 +35,7 @@ func OpDup(stack Stack) Stack {
 	return stack
 }
 
-func OpHash160(stack Stack) Stack {
+func OpHash160(stack [][]byte) [][]byte {
 	if len(stack) < 1 {
 		return stack
 	}
@@ -47,7 +47,7 @@ func OpHash160(stack Stack) Stack {
 	return stack
 }
 
-func OpHash256(stack Stack) Stack {
+func OpHash256(stack [][]byte) [][]byte {
 	if len(stack) < 1 {
 		return stack
 	}
