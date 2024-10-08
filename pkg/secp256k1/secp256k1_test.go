@@ -75,7 +75,7 @@ func TestSecp256k1Point_Serialize(t *testing.T) {
 	}
 }
 
-func TestDeserializeSecp256k1Point(t *testing.T) {
+func TestParseSecp256k1Point(t *testing.T) {
 	type args struct {
 		serialized []byte
 	}
@@ -125,8 +125,8 @@ func TestDeserializeSecp256k1Point(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			args := tt.argsGenerator()
 			want := tt.wantGenerator()
-			if got := DeserializeSecp256k1Point(args.serialized); !got.Point.Equals(want.Point) {
-				t.Errorf("DeserializeSecp256k1Point() = %v, want %v", got, want)
+			if got := ParseSecp256k1Point(args.serialized); !got.Point.Equals(want.Point) {
+				t.Errorf("ParseSecp256k1Point() = %v, want %v", got, want)
 			}
 		})
 	}

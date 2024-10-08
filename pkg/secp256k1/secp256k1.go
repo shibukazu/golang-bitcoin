@@ -80,7 +80,7 @@ func (p Secp256k1Point) Serialize(compressed bool) []byte {
 	}
 }
 
-func DeserializeSecp256k1Point(serialized []byte) Secp256k1Point {
+func ParseSecp256k1Point(serialized []byte) Secp256k1Point {
 	marker := serialized[0]
 	x := new(big.Int).SetBytes(serialized[1:33])
 	var y *big.Int

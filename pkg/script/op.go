@@ -2,7 +2,10 @@ package script
 
 import (
 	"fmt"
+	"golang-bitcoin/pkg/secp256k1"
+	"golang-bitcoin/pkg/signature"
 	"golang-bitcoin/pkg/utils"
+	"math/big"
 )
 
 const (
@@ -209,5 +212,33 @@ func (s *Script) OpFromAltStack() error {
 		return err
 	}
 	s.Stack = append(s.Stack, element)
+	return nil
+}
+
+func (s *Script) OpCheckSig(z *big.Int) error {
+	if len(s.Stack) < 2 {
+		return fmt.Errorf("stack is empty")
+	}
+	secPubkey, err := s.PopStack()
+	if err != nil {
+		return err
+	}
+	derSig, err := s.PopStack()
+	if err != nil {
+		return err
+	}
+
+	pubkey := secp256k1.ParseSecp256k1Point(secPubkey)
+	sig, err := signature.ParseSignature(derSig)
+	if err != nil {
+		return err
+	}
+	valid := pubkey.Verify(z, *sig)
+	if valid {
+		s.Stack = append(s.Stack, encodeNum(1))
+	} else {
+		s.Stack = append(s.Stack, encodeNum(0))
+	}
+
 	return nil
 }
