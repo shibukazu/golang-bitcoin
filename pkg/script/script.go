@@ -7,18 +7,10 @@ import (
 	"io"
 )
 
-const (
-	OP_DUP       = 0x76
-	OP_HASH160   = 0xa9
-	OP_HASH256   = 0xaa
-	OP_PUSHDATA1 = 0x4c
-	OP_PUSHDATA2 = 0x4d
-	OP_CHECKSIG  = 0xac
-)
-
 type Script struct {
 	Instructions [][]byte
 	Stack        [][]byte
+	AltStack     [][]byte
 }
 
 func NewScript() *Script {
@@ -27,36 +19,31 @@ func NewScript() *Script {
 	}
 }
 
-func OpDup(stack [][]byte) [][]byte {
-	if len(stack) < 1 {
-		return stack
+func (s *Script) PopInstruction() ([]byte, error) {
+	if len(s.Instructions) == 0 {
+		return nil, fmt.Errorf("no instructions to pop")
 	}
-	stack = append(stack, stack[len(stack)-1])
-	return stack
+	element := s.Instructions[0]
+	s.Instructions = s.Instructions[1:]
+	return element, nil
 }
 
-func OpHash160(stack [][]byte) [][]byte {
-	if len(stack) < 1 {
-		return stack
+func (s *Script) PopStack() ([]byte, error) {
+	if len(s.Stack) == 0 {
+		return nil, fmt.Errorf("no stack to pop")
 	}
-	element := stack[len(stack)-1]
-	stack = stack[:len(stack)-1]
-
-	hash := utils.Hash160(element)
-	stack = append(stack, hash)
-	return stack
+	element := s.Stack[len(s.Stack)-1]
+	s.Stack = s.Stack[:len(s.Stack)-1]
+	return element, nil
 }
 
-func OpHash256(stack [][]byte) [][]byte {
-	if len(stack) < 1 {
-		return stack
+func (s *Script) PopAltStack() ([]byte, error) {
+	if len(s.AltStack) == 0 {
+		return nil, fmt.Errorf("no alt stack to pop")
 	}
-	element := stack[len(stack)-1]
-	stack = stack[:len(stack)-1]
-
-	hash := utils.Hash256(element)
-	stack = append(stack, hash)
-	return stack
+	element := s.AltStack[len(s.AltStack)-1]
+	s.AltStack = s.AltStack[:len(s.AltStack)-1]
+	return element, nil
 }
 
 func ParseScript(reader io.Reader) (*Script, error) {
@@ -150,4 +137,39 @@ func (s *Script) Serialize() ([]byte, error) {
 
 func (s *Script) Add(other *Script) {
 	s.Instructions = append(s.Instructions, other.Instructions...)
+}
+
+func (s *Script) Evaluate() error {
+	for len(s.Instructions) > 0 {
+		inst, err := s.PopInstruction()
+		if err != nil {
+			return err
+		}
+		if utils.IsInteger(inst) {
+			/// NOTE: opcode
+			intInst := decodeNum(inst)
+			switch intInst {
+			case OP_DUP:
+				s.OpDup()
+			case OP_HASH160:
+				s.OpHash160()
+			case OP_HASH256:
+				s.OpHash256()
+			case OP_IF:
+				s.OpIf()
+			case OP_NOTIF:
+				s.OpNotIf()
+			case OP_TOALTSTACK:
+				s.OpToAltStack()
+			case OP_FROMALTSTACK:
+				s.OpFromAltStack()
+			default:
+				return fmt.Errorf("unsupported opcode")
+			}
+		} else {
+			// NOTE: element
+			s.Stack = append(s.Stack, inst)
+		}
+	}
+	return nil
 }
