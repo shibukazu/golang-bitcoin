@@ -287,3 +287,16 @@ func (s *Script) OpCheckSig(z *big.Int) error {
 
 	return nil
 }
+
+func IsOp(inst []byte) bool {
+	if len(inst) != 1 {
+		return false
+	}
+	op := inst[0]
+	switch op {
+	case OP_DUP, OP_HASH160, OP_HASH256, OP_PUSHDATA1, OP_PUSHDATA2, OP_IF, OP_NOTIF, OP_ELSE, OP_ENDIF, OP_TOALTSTACK, OP_FROMALTSTACK, OP_CHECKSIG, OP_CHECKSIGVERIFY, OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_EQUAL, OP_EQUALVERIFY:
+		return true
+	default:
+		return false
+	}
+}

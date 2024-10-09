@@ -248,9 +248,13 @@ func NewInput(previousOutputHash []byte, previousOutputIndex uint32, scriptSig *
 func ParseInput(reader io.Reader) (*Input, error) {
 	var buf []byte
 
-	previousOutputHash := make([]byte, 32)
-	if _, err := io.ReadFull(reader, previousOutputHash); err != nil {
+	littleEndianPreviousOutputHash := make([]byte, 32)
+	if _, err := io.ReadFull(reader, littleEndianPreviousOutputHash); err != nil {
 		return nil, err
+	}
+	previousOutputHash := make([]byte, 32)
+	for j := 0; j < 32; j++ {
+		previousOutputHash[j] = littleEndianPreviousOutputHash[31-j]
 	}
 
 	buf = make([]byte, 4)
@@ -276,7 +280,11 @@ func ParseInput(reader io.Reader) (*Input, error) {
 func (i *Input) Serialize() []byte {
 	var serialized []byte
 
-	serialized = append(serialized, i.PreviousOutputHash...)
+	littleEndianPreviousOutputHash := make([]byte, len(i.PreviousOutputHash))
+	for j := 0; j < len(i.PreviousOutputHash); j++ {
+		littleEndianPreviousOutputHash[j] = i.PreviousOutputHash[len(i.PreviousOutputHash)-j-1]
+	}
+	serialized = append(serialized, littleEndianPreviousOutputHash...)
 
 	buf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(buf, i.PreviousOutputIndex)
@@ -286,6 +294,11 @@ func (i *Input) Serialize() []byte {
 	if err != nil {
 		return nil
 	}
+	scriptSigLen, err := utils.SerializeVarInt(uint64(len(serializedScriptSig)))
+	if err != nil {
+		return nil
+	}
+	serialized = append(serialized, scriptSigLen...)
 	serialized = append(serialized, serializedScriptSig...)
 
 	buf = make([]byte, 4)
@@ -348,6 +361,11 @@ func (o *Output) Serialize() []byte {
 	if err != nil {
 		return nil
 	}
+	scriptPubKeyLen, err := utils.SerializeVarInt(uint64(len(serializedScriptPubKey)))
+	if err != nil {
+		return nil
+	}
+	serialized = append(serialized, scriptPubKeyLen...)
 	serialized = append(serialized, serializedScriptPubKey...)
 
 	return serialized

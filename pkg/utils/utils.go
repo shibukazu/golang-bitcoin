@@ -4,15 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"io"
-	"strconv"
 
 	"golang.org/x/crypto/ripemd160"
 )
-
-func IsInteger(bytes []byte) bool {
-	_, err := strconv.Atoi(string(bytes))
-	return err == nil
-}
 
 func PadTo32Bytes(input []byte) []byte {
 	if len(input) == 32 {

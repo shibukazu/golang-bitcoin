@@ -37,7 +37,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	txOut := transaction.NewOutput(0.00007905*satoshiPerBitcoin, scriptPubKey)
+	txOut := transaction.NewOutput(0.00000905*satoshiPerBitcoin, scriptPubKey)
 
 	lockTime := uint32(0)
 

@@ -113,7 +113,7 @@ func ParseScript(reader io.Reader) (*Script, error) {
 func (s *Script) Serialize() ([]byte, error) {
 	buf := make([]byte, 0)
 	for _, inst := range s.Instructions {
-		if utils.IsInteger(inst) {
+		if IsOp(inst) {
 			// NOTE: opcode
 			buf = append(buf, inst...)
 		} else {
@@ -147,7 +147,7 @@ func (s *Script) Evaluate(z *big.Int) error {
 		if err != nil {
 			return err
 		}
-		if utils.IsInteger(inst) {
+		if IsOp(inst) {
 			/// NOTE: opcode
 			intInst := decodeNum(inst)
 			switch intInst {
