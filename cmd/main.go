@@ -2,18 +2,31 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"golang-bitcoin/pkg/privkey"
 	"golang-bitcoin/pkg/script"
 	"golang-bitcoin/pkg/transaction"
 	"math/big"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 const (
 	satoshiPerBitcoin = 100000000
-	secretString      = "kazukishibutanitestnetprivekey"
 )
 
+// NOTE: PubKey Address: msijx6rX4HcwPrFQ5gPf8A9d9BkEKCZo5H
+
 func main() {
+	godotenv.Load()
+
+	secretString := os.Getenv("SECRET_STRING")
+	secret := new(big.Int).SetBytes([]byte(secretString))
+	privKey := privkey.NewPrivKey(secret)
+	pubKey := privKey.PubKey()
+	fmt.Println("Pubkey Address:", pubKey.Address(true, true))
+
 	// NOTE: 使いたいトランザクションのID
 	prevOutputHash, _ := hex.DecodeString("")
 	prevOutputIndex := uint32(0)
@@ -30,10 +43,6 @@ func main() {
 
 	tx := transaction.NewTransaction(1, []*transaction.Input{txIn}, []*transaction.Output{txOut}, lockTime)
 
-	secret := new(big.Int).SetBytes([]byte(secretString))
-	privKey := privkey.NewPrivKey(secret)
-	pubKey := privKey.PubKey()
-	serializedPubKey := pubKey.Serialize(true)
 	sigHash, err := tx.SigHash(0, true)
 	if err != nil {
 		panic(err)
@@ -41,7 +50,7 @@ func main() {
 	z := new(big.Int).SetBytes(sigHash)
 	sig := privKey.Sign(z)
 	serializedSig := sig.Serialize()
+	serializedPubKey := pubKey.Serialize(true)
 	scriptSig := script.NewScriptSig(serializedSig, serializedPubKey)
 	tx.Inputs[0].ScriptSig = scriptSig
-
 }
