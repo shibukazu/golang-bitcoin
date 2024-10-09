@@ -1,6 +1,7 @@
 package secp256k1
 
 import (
+	"fmt"
 	"golang-bitcoin/pkg/curve"
 	"golang-bitcoin/pkg/field"
 	"golang-bitcoin/pkg/signature"
@@ -131,7 +132,25 @@ func (p Secp256k1Point) Address(compressed bool, testnet bool) string {
 	checksum := utils.Hash256(joint)[:4]
 
 	return base58.Encode(append(joint, checksum...))
+}
 
+func ExtractHash160(address string) ([]byte, error) {
+	decoded := base58.Decode(address)
+	if len(decoded) != 25 {
+		return nil, fmt.Errorf("invalid address length")
+	}
+
+	prefix := decoded[0]
+	serialized160 := decoded[1:21]
+	checksum := decoded[21:]
+
+	joint := append([]byte{prefix}, serialized160...)
+	rawChecksum := utils.Hash256(joint)[:4]
+	if !utils.CompareBytes(checksum, rawChecksum) {
+		return nil, fmt.Errorf("invalid checksum")
+	}
+
+	return serialized160, nil
 }
 
 func NewSecp256k1FieldElement(num *big.Int) Secp256k1FieldElement {

@@ -24,6 +24,8 @@ const (
 	OP_CHECKSIGVERIFY      = 0xad
 	OP_CHECKMULTISIG       = 0xae
 	OP_CHECKMULTISIGVERIFY = 0xaf
+	OP_EQUAL               = 0x87
+	OP_EQUALVERIFY         = 0x88
 )
 
 // NOTE: Op呼び出時のInstructionsはOp自体を含まない
@@ -67,6 +69,49 @@ func (s *Script) OpHash256() error {
 	hash := utils.Hash256(element)
 	s.Stack = append(s.Stack, hash)
 	return nil
+}
+
+func (s *Script) OpEqual() error {
+	if len(s.Stack) < 2 {
+		return fmt.Errorf("stack is empty")
+	}
+	element1, err := s.PopStack()
+	if err != nil {
+		return err
+	}
+	element2, err := s.PopStack()
+	if err != nil {
+		return err
+	}
+
+	if utils.CompareBytes(element1, element2) {
+		s.Stack = append(s.Stack, encodeNum(1))
+	} else {
+		s.Stack = append(s.Stack, encodeNum(0))
+	}
+	return nil
+}
+
+func (s *Script) OpVerify() error {
+	if len(s.Stack) < 1 {
+		return fmt.Errorf("stack is empty")
+	}
+	element, err := s.PopStack()
+	if err != nil {
+		return err
+	}
+
+	if decodeNum(element) == 0 {
+		return fmt.Errorf("invalid element")
+	}
+	return nil
+}
+
+func (s *Script) OpEqualVerify() error {
+	if err := s.OpEqual(); err != nil {
+		return err
+	}
+	return s.OpVerify()
 }
 
 func (s *Script) OpIf() error {

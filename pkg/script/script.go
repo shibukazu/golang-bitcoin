@@ -3,6 +3,7 @@ package script
 import (
 	"encoding/binary"
 	"fmt"
+	"golang-bitcoin/pkg/secp256k1"
 	"golang-bitcoin/pkg/utils"
 	"io"
 	"math/big"
@@ -156,6 +157,10 @@ func (s *Script) Evaluate(z *big.Int) error {
 				s.OpHash160()
 			case OP_HASH256:
 				s.OpHash256()
+			case OP_EQUAL:
+				s.OpEqual()
+			case OP_EQUALVERIFY:
+				s.OpEqualVerify()
 			case OP_IF:
 				s.OpIf()
 			case OP_NOTIF:
@@ -189,4 +194,25 @@ func (s *Script) Evaluate(z *big.Int) error {
 	}
 
 	return nil
+}
+
+func NewP2PKHScriptPubkey(address string) (*Script, error) {
+	hash160, err := secp256k1.ExtractHash160(address)
+	if err != nil {
+		return nil, err
+	}
+	script := NewScript()
+	script.Instructions = append(script.Instructions, []byte{OP_DUP})
+	script.Instructions = append(script.Instructions, []byte{OP_HASH160})
+	script.Instructions = append(script.Instructions, hash160)
+	script.Instructions = append(script.Instructions, []byte{OP_EQUALVERIFY})
+	script.Instructions = append(script.Instructions, []byte{OP_CHECKSIG})
+	return script, nil
+}
+
+func NewScriptSig(signature, pubkey []byte) *Script {
+	script := NewScript()
+	script.Instructions = append(script.Instructions, signature)
+	script.Instructions = append(script.Instructions, pubkey)
+	return script
 }
