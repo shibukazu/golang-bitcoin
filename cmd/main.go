@@ -14,6 +14,7 @@ import (
 
 const (
 	satoshiPerBitcoin = 100000000
+	sendbackAddress   = "msijx6rX4HcwPrFQ5gPf8A9d9BkEKCZo5H"
 )
 
 // NOTE: PubKey Address: msijx6rX4HcwPrFQ5gPf8A9d9BkEKCZo5H
@@ -28,20 +29,19 @@ func main() {
 	fmt.Println("Pubkey Address:", pubKey.Address(true, true))
 
 	// NOTE: 使いたいトランザクションのID
-	prevOutputHash, _ := hex.DecodeString("")
-	prevOutputIndex := uint32(0)
+	prevOutputHash, _ := hex.DecodeString("75245e7b859c3cbd17bebea6bf691ca4bb646a8d1a951b8da060185cec7b5c6d")
+	prevOutputIndex := uint32(1)
 	txIn := transaction.NewInput(prevOutputHash, prevOutputIndex, nil, 0xffffffff)
 
-	address := "mzBc4XEFS4g3v7m3UuZs4zr1vZ3f6z1j6C"
-	scriptPubKey, err := script.NewP2PKHScriptPubkey(address)
+	scriptPubKey, err := script.NewP2PKHScriptPubkey(sendbackAddress)
 	if err != nil {
 		panic(err)
 	}
-	txOut := transaction.NewOutput(0.01*satoshiPerBitcoin, scriptPubKey)
+	txOut := transaction.NewOutput(0.00007905*satoshiPerBitcoin, scriptPubKey)
 
 	lockTime := uint32(0)
 
-	tx := transaction.NewTransaction(1, []*transaction.Input{txIn}, []*transaction.Output{txOut}, lockTime)
+	tx := transaction.NewTransaction(1, []*transaction.Input{txIn}, []*transaction.Output{txOut}, lockTime, false)
 
 	sigHash, err := tx.SigHash(0, true)
 	if err != nil {
@@ -53,4 +53,16 @@ func main() {
 	serializedPubKey := pubKey.Serialize(true)
 	scriptSig := script.NewScriptSig(serializedSig, serializedPubKey)
 	tx.Inputs[0].ScriptSig = scriptSig
+
+	serialized, err := tx.Serialize()
+	if err != nil {
+		panic(err)
+	}
+
+	txID, err := tx.ID()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("TransactionID: ", txID)
+	fmt.Printf("Transaction:\n%s\n", hex.EncodeToString(serialized))
 }

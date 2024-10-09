@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"crypto/sha256"
+	"bufio"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -16,6 +16,7 @@ type Transaction struct {
 	Inputs   []*Input
 	Outputs  []*Output
 	Locktime uint32
+	IsSegwit bool
 }
 
 type Input struct {
@@ -30,51 +31,78 @@ type Output struct {
 	ScriptPubKey *script.Script
 }
 
-func NewTransaction(version uint32, inputs []*Input, outputs []*Output, locktime uint32) *Transaction {
-	return &Transaction{version, inputs, outputs, locktime}
+func NewTransaction(version uint32, inputs []*Input, outputs []*Output, locktime uint32, isSegwit bool) *Transaction {
+	return &Transaction{version, inputs, outputs, locktime, isSegwit}
 }
 
 func ParseTransaction(reader io.Reader) (*Transaction, error) {
+	breader := bufio.NewReader(reader)
 	var buf []byte
 
 	var version uint32
 	buf = make([]byte, 4)
-	if _, err := io.ReadFull(reader, buf); err != nil {
-		return nil, err
+	if _, err := io.ReadFull(breader, buf); err != nil {
+		return nil, fmt.Errorf("error reading version: %v", err)
 	}
 	version = binary.LittleEndian.Uint32(buf)
 
-	numInputs, err := utils.ParseVarInt(reader)
+	peekBytes, err := breader.Peek(2)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error peeking for segwit flag: %v", err)
+	}
+	isSegwit := peekBytes[0] == 0x00 && peekBytes[1] == 0x01
+	if isSegwit {
+		if _, err := breader.Discard(2); err != nil {
+			return nil, fmt.Errorf("error discarding segwit flag: %v", err)
+		}
+	}
+
+	numInputs, err := utils.ParseVarInt(breader)
+	if err != nil {
+		return nil, fmt.Errorf("error reading number of inputs: %v", err)
 	}
 	inputs := make([]*Input, numInputs)
 	for i := 0; i < int(numInputs); i++ {
-		inputs[i], err = ParseInput(reader)
+		inputs[i], err = ParseInput(breader)
+		if err != nil {
+			return nil, fmt.Errorf("error reading input %d: %v", i, err)
+		}
 	}
 
-	numOutputs, err := utils.ParseVarInt(reader)
+	numOutputs, err := utils.ParseVarInt(breader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading number of outputs: %v", err)
 	}
 	outputs := make([]*Output, numOutputs)
 	for i := 0; i < int(numOutputs); i++ {
-		outputs[i], err = ParseOutput(reader)
+		outputs[i], err = ParseOutput(breader)
+		if err != nil {
+			return nil, fmt.Errorf("error reading output %d: %v", i, err)
+		}
 	}
 
-	var locktime uint32
-	buf = make([]byte, 4)
-	if _, err := io.ReadFull(reader, buf); err != nil {
-		return nil, err
+	if isSegwit {
+		// TODO: Parse witness data
 	}
-	locktime = binary.LittleEndian.Uint32(buf)
 
-	return &Transaction{version, inputs, outputs, locktime}, nil
+	remainingData, err := io.ReadAll(breader)
+	if err != nil {
+		return nil, fmt.Errorf("error reading remaining data: %v", err)
+	}
+	if len(remainingData) < 4 {
+		return nil, fmt.Errorf("remaining data is too short to contain locktime")
+	}
+	locktime := binary.LittleEndian.Uint32(remainingData[len(remainingData)-4:])
+
+	return &Transaction{version, inputs, outputs, locktime, isSegwit}, nil
 }
 
 func (t *Transaction) Serialize() ([]byte, error) {
-	var serialized []byte
-	binary.LittleEndian.PutUint32(serialized, t.Version)
+	serialized := make([]byte, 0)
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, t.Version)
+	serialized = append(serialized, buf...)
 
 	numInputs, err := utils.SerializeVarInt(uint64(len(t.Inputs)))
 	if err != nil {
@@ -93,7 +121,10 @@ func (t *Transaction) Serialize() ([]byte, error) {
 	for _, output := range t.Outputs {
 		serialized = append(serialized, output.Serialize()...)
 	}
-	binary.LittleEndian.PutUint32(serialized, t.Locktime)
+
+	buf = make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, t.Locktime)
+	serialized = append(serialized, buf...)
 
 	return serialized, nil
 }
@@ -103,10 +134,10 @@ func (t *Transaction) ID() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	firstHash := sha256.Sum256(serialized)
-	secondHash := sha256.Sum256(firstHash[:])
 
-	return hex.EncodeToString(secondHash[:]), nil
+	hash256 := utils.Hash256(serialized)
+
+	return hex.EncodeToString(hash256), nil
 }
 
 func (t *Transaction) Fee(testnet bool) (uint64, error) {
@@ -244,14 +275,23 @@ func ParseInput(reader io.Reader) (*Input, error) {
 
 func (i *Input) Serialize() []byte {
 	var serialized []byte
+
 	serialized = append(serialized, i.PreviousOutputHash...)
-	binary.LittleEndian.PutUint32(serialized, i.PreviousOutputIndex)
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, i.PreviousOutputIndex)
+	serialized = append(serialized, buf...)
+
 	serializedScriptSig, err := i.ScriptSig.Serialize()
 	if err != nil {
 		return nil
 	}
 	serialized = append(serialized, serializedScriptSig...)
-	binary.LittleEndian.PutUint32(serialized, i.Sequence)
+
+	buf = make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, i.Sequence)
+	serialized = append(serialized, buf...)
+
 	return serialized
 }
 
@@ -299,13 +339,16 @@ func ParseOutput(reader io.Reader) (*Output, error) {
 
 func (o *Output) Serialize() []byte {
 	var serialized []byte
+
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, o.Value)
 	serialized = append(serialized, buf...)
+
 	serializedScriptPubKey, err := o.ScriptPubKey.Serialize()
 	if err != nil {
 		return nil
 	}
 	serialized = append(serialized, serializedScriptPubKey...)
+
 	return serialized
 }

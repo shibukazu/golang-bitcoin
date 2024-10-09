@@ -13,9 +13,9 @@ type TransactionFetcher struct {
 func NewTransactionFetcher(testnet bool) *TransactionFetcher {
 	var url string
 	if testnet {
-		url = "http://testnet.programmingbitcoin.com"
+		url = "https://blockstream.info/testnet/api/tx"
 	} else {
-		url = "http://mainnet.programmingbitcoin.com"
+		url = "https://blockstream.info/api/tx"
 	}
 	return &TransactionFetcher{url, make(map[string]*Transaction)}
 }
@@ -24,7 +24,7 @@ func (tf *TransactionFetcher) FetchTransaction(txid string, fresh bool) (*Transa
 	if !fresh && tf.cached[txid] != nil {
 		return tf.cached[txid], nil
 	}
-	url := fmt.Sprintf("%s/tx/%s.hex", tf.url, txid)
+	url := fmt.Sprintf("%s/%s/raw", tf.url, txid)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -40,13 +40,16 @@ func (tf *TransactionFetcher) FetchTransaction(txid string, fresh bool) (*Transa
 		return nil, err
 	}
 
-	actualTxid, err := tx.ID()
-	if err != nil {
-		return nil, err
-	}
-	if actualTxid != txid {
-		return nil, fmt.Errorf("fetched transaction id does not match expected: %s != %s", actualTxid, txid)
-	}
+	/*
+		TODO: witness実装まではコメントアウト
+		actualTxid, err := tx.ID()
+		if err != nil {
+			return nil, err
+		}
+		if actualTxid != txid {
+			return nil, fmt.Errorf("fetched transaction id does not match expected: %s != %s", actualTxid, txid)
+		}
+	*/
 
 	tf.cached[txid] = tx
 

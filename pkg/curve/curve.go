@@ -99,6 +99,8 @@ func (p1 Point) Multiply(scalar *big.Int) Point {
 	result := NewPoint(field.NewFieldElement(zero, p1.a.Prime), field.NewFieldElement(zero, p1.a.Prime), p1.a, p1.b)
 	// TODO: 二進展開を理解する
 	addend := p1
+	// NOTE: scalarが消費されないようにするためにコピーを作成
+	scalar = new(big.Int).Set(scalar)
 	for scalar.Cmp(zero) > 0 {
 		if new(big.Int).And(scalar, big.NewInt(1)).Cmp(big.NewInt(1)) == 0 {
 			result = result.Add(addend)

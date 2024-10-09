@@ -27,12 +27,18 @@ func (p PrivKey) Equals(other PrivKey) bool {
 }
 
 func (p PrivKey) Sign(z *big.Int) *signature.Signature {
-	k, err := rand.Int(rand.Reader, nil)
-	if err != nil {
-		panic(err)
+	var r *big.Int
+	var k *big.Int
+	var err error
+	for r == nil || r.Sign() == 0 {
+		k, err = rand.Int(rand.Reader, secp256k1.NewSecp256p())
+		if err != nil {
+			panic(err)
+		}
+		R := secp256k1.NewSecp256k1G().Multiply(k)
+		r = R.X()
 	}
-	R := secp256k1.NewSecp256k1G().Multiply(k)
-	r := R.X()
+
 	invK := new(big.Int).ModInverse(k, secp256k1.NewSecp256p())
 	re := new(big.Int).Mul(p.secret, r)
 	re.Add(re, z)
