@@ -3,6 +3,7 @@ package privkey
 import (
 	"crypto/rand"
 	"golang-bitcoin/pkg/secp256k1"
+	"golang-bitcoin/pkg/signature"
 	"golang-bitcoin/pkg/utils"
 	"math/big"
 
@@ -25,19 +26,19 @@ func (p PrivKey) Equals(other PrivKey) bool {
 	return p.secret.Cmp(other.secret) == 0
 }
 
-func (p PrivKey) Sign(z *big.Int) (r, s *big.Int) {
+func (p PrivKey) Sign(z *big.Int) *signature.Signature {
 	k, err := rand.Int(rand.Reader, nil)
 	if err != nil {
 		panic(err)
 	}
 	R := secp256k1.NewSecp256k1G().Multiply(k)
-	r = R.X()
+	r := R.X()
 	invK := new(big.Int).ModInverse(k, secp256k1.NewSecp256p())
 	re := new(big.Int).Mul(p.secret, r)
 	re.Add(re, z)
-	s = new(big.Int).Mul(re, invK)
+	s := new(big.Int).Mul(re, invK)
 	s.Mod(s, secp256k1.NewSecp256p())
-	return r, s
+	return signature.NewSignature(r, s)
 }
 
 func (p PrivKey) WIF(compressed bool, testnet bool) string {
@@ -56,4 +57,9 @@ func (p PrivKey) WIF(compressed bool, testnet bool) string {
 	checksum = checksum[:4]
 	secretBytes = append(secretBytes, checksum...)
 	return base58.Encode(secretBytes)
+}
+
+func (p *PrivKey) PubKey() secp256k1.Secp256k1Point {
+	P := secp256k1.NewSecp256k1G().Multiply(p.secret)
+	return secp256k1.NewSecp256k1Point(P.X(), P.Y())
 }

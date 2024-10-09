@@ -19,10 +19,6 @@ const (
 	s256gyHex = "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
 )
 
-type Secp256k1FieldElement struct {
-	field.FieldElement
-}
-
 type Secp256k1Point struct {
 	curve.Point
 }
@@ -151,14 +147,6 @@ func ExtractHash160(address string) ([]byte, error) {
 	}
 
 	return serialized160, nil
-}
-
-func NewSecp256k1FieldElement(num *big.Int) Secp256k1FieldElement {
-	s256p, _ := new(big.Int).SetString(s256pHex, 16)
-	fieldElement := field.NewFieldElement(num, s256p)
-	secp256k1FieldElement := Secp256k1FieldElement{fieldElement}
-
-	return secp256k1FieldElement
 }
 
 func NewSecp256p() *big.Int {

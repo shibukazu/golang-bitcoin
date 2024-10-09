@@ -210,9 +210,9 @@ func NewP2PKHScriptPubkey(address string) (*Script, error) {
 	return script, nil
 }
 
-func NewScriptSig(signature, pubkey []byte) *Script {
+func NewScriptSig(serializedSignature, serializedPubkey []byte) *Script {
 	script := NewScript()
-	script.Instructions = append(script.Instructions, signature)
-	script.Instructions = append(script.Instructions, pubkey)
+	script.Instructions = append(script.Instructions, serializedSignature)
+	script.Instructions = append(script.Instructions, serializedPubkey)
 	return script
 }
