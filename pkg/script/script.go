@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golang-bitcoin/pkg/utils"
 	"io"
+	"math/big"
 )
 
 type Script struct {
@@ -139,7 +140,7 @@ func (s *Script) Add(other *Script) {
 	s.Instructions = append(s.Instructions, other.Instructions...)
 }
 
-func (s *Script) Evaluate() error {
+func (s *Script) Evaluate(z *big.Int) error {
 	for len(s.Instructions) > 0 {
 		inst, err := s.PopInstruction()
 		if err != nil {
@@ -163,6 +164,8 @@ func (s *Script) Evaluate() error {
 				s.OpToAltStack()
 			case OP_FROMALTSTACK:
 				s.OpFromAltStack()
+			case OP_CHECKSIG:
+				s.OpCheckSig(z)
 			default:
 				return fmt.Errorf("unsupported opcode")
 			}
@@ -171,5 +174,19 @@ func (s *Script) Evaluate() error {
 			s.Stack = append(s.Stack, inst)
 		}
 	}
+	if len(s.Stack) == 0 {
+		return fmt.Errorf("stack is empty")
+	}
+	if len(s.Stack) > 1 {
+		return fmt.Errorf("stack has multiple elements")
+	}
+	if len(s.AltStack) > 0 {
+		return fmt.Errorf("alt stack is not empty")
+	}
+	element := s.Stack[0]
+	if decodeNum(element) == 0 {
+		return fmt.Errorf("stack top element is zero")
+	}
+
 	return nil
 }

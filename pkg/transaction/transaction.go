@@ -8,6 +8,7 @@ import (
 	"golang-bitcoin/pkg/script"
 	"golang-bitcoin/pkg/utils"
 	"io"
+	"math/big"
 	"net/http"
 )
 
@@ -176,6 +177,38 @@ func (t *Transaction) SigHash(index int, testnet bool) ([]byte, error) {
 	hash := utils.Hash256(serialized)
 
 	return hash, nil
+}
+
+func (t *Transaction) VerifyInput(index int, testnet bool) error {
+	sigHash, err := t.SigHash(index, testnet)
+	if err != nil {
+		return err
+	}
+	z := new(big.Int).SetBytes(sigHash)
+	scriptPubkey, err := t.Inputs[index].ScriptPubKey(testnet)
+	if err != nil {
+		return err
+	}
+	scriptSig := t.Inputs[index].ScriptSig
+	scriptSig.Add(scriptPubkey)
+	return scriptSig.Evaluate(z)
+}
+
+func (t *Transaction) Verify(testnet bool) error {
+	fee, err := t.Fee(testnet)
+	if err != nil {
+		return err
+	}
+	if fee < 0 {
+		return fmt.Errorf("transaction has negative fee")
+	}
+	for i := 0; i < len(t.Inputs); i++ {
+		err := t.VerifyInput(i, testnet)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func ParseInput(reader io.Reader) (*Input, error) {
