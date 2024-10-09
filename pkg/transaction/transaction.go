@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"golang-bitcoin/pkg/script"
 	"golang-bitcoin/pkg/utils"
 	"io"
 	"net/http"
@@ -20,18 +21,14 @@ type Transaction struct {
 type Input struct {
 	PreviousOutputHash  []byte
 	PreviousOutputIndex uint32
-	ScriptSig           *ScriptSig
+	ScriptSig           *script.Script
 	Sequence            uint32
 }
 
-type ScriptSig struct{}
-
 type Output struct {
 	Value        uint64
-	ScriptPubKey *ScriptPubKey
+	ScriptPubKey *script.Script
 }
-
-type ScriptPubKey struct{}
 
 func NewTransaction(version uint32, inputs []*Input, outputs []*Output, locktime uint32) *Transaction {
 	return &Transaction{version, inputs, outputs, locktime}
@@ -112,6 +109,75 @@ func (t *Transaction) ID() (string, error) {
 	return hex.EncodeToString(secondHash[:]), nil
 }
 
+func (t *Transaction) Fee(testnet bool) (uint64, error) {
+	var inputSum uint64
+	for _, input := range t.Inputs {
+		value, err := input.Value(testnet)
+		if err != nil {
+			return 0, err
+		}
+		inputSum += value
+	}
+	var outputSum uint64
+	for _, output := range t.Outputs {
+		outputSum += output.Value
+	}
+	return inputSum - outputSum, nil
+}
+
+func (t *Transaction) DeepCopy() *Transaction {
+	inputs := make([]*Input, len(t.Inputs))
+	for i, input := range t.Inputs {
+		inputs[i] = &Input{
+			PreviousOutputHash:  input.PreviousOutputHash,
+			PreviousOutputIndex: input.PreviousOutputIndex,
+			ScriptSig:           input.ScriptSig,
+			Sequence:            input.Sequence,
+		}
+	}
+
+	outputs := make([]*Output, len(t.Outputs))
+	for i, output := range t.Outputs {
+		outputs[i] = &Output{
+			Value:        output.Value,
+			ScriptPubKey: output.ScriptPubKey,
+		}
+	}
+
+	return &Transaction{
+		Version:  t.Version,
+		Inputs:   inputs,
+		Outputs:  outputs,
+		Locktime: t.Locktime,
+	}
+}
+
+func (t *Transaction) SigHash(index int, testnet bool) ([]byte, error) {
+	txCopy := t.DeepCopy()
+	for i := 0; i < len(txCopy.Inputs); i++ {
+		if i != index {
+			txCopy.Inputs[i].ScriptSig = script.NewScript()
+		}
+	}
+	scriptPubKey, err := txCopy.Inputs[index].ScriptPubKey(testnet)
+	if err != nil {
+		return nil, err
+	}
+	txCopy.Inputs[index].ScriptSig = scriptPubKey
+
+	serialized, err := txCopy.Serialize()
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, 1)
+	serialized = append(serialized, buf...)
+	hash := utils.Hash256(serialized)
+
+	return hash, nil
+}
+
 func ParseInput(reader io.Reader) (*Input, error) {
 	var buf []byte
 
@@ -126,7 +192,7 @@ func ParseInput(reader io.Reader) (*Input, error) {
 	}
 	previousOutputIndex := binary.LittleEndian.Uint32(buf)
 
-	scriptSig, err := ParseScriptSig(reader)
+	scriptSig, err := script.ParseScript(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +210,11 @@ func (i *Input) Serialize() []byte {
 	var serialized []byte
 	serialized = append(serialized, i.PreviousOutputHash...)
 	binary.LittleEndian.PutUint32(serialized, i.PreviousOutputIndex)
-	serialized = append(serialized, i.ScriptSig.Serialize()...)
+	serializedScriptSig, err := i.ScriptSig.Serialize()
+	if err != nil {
+		return nil
+	}
+	serialized = append(serialized, serializedScriptSig...)
 	binary.LittleEndian.PutUint32(serialized, i.Sequence)
 	return serialized
 }
@@ -158,21 +228,13 @@ func (i *Input) Value(testnet bool) (uint64, error) {
 	return tx.Outputs[i.PreviousOutputIndex].Value, nil
 }
 
-func (i *Input) ScriptPubKey(testnet bool) (*ScriptPubKey, error) {
+func (i *Input) ScriptPubKey(testnet bool) (*script.Script, error) {
 	fetcher := NewTransactionFetcher(testnet)
 	tx, err := fetcher.FetchTransaction(hex.EncodeToString(i.PreviousOutputHash), false)
 	if err != nil {
 		return nil, err
 	}
 	return tx.Outputs[i.PreviousOutputIndex].ScriptPubKey, nil
-}
-
-func ParseScriptSig(reader io.Reader) (*ScriptSig, error) {
-	return &ScriptSig{}, nil
-}
-
-func (s *ScriptSig) Serialize() []byte {
-	return nil
 }
 
 func ParseOutput(reader io.Reader) (*Output, error) {
@@ -184,7 +246,7 @@ func ParseOutput(reader io.Reader) (*Output, error) {
 	}
 	value := binary.LittleEndian.Uint64(buf)
 
-	scriptPubKey, err := ParseScriptPubKey(reader)
+	scriptPubKey, err := script.ParseScript(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -200,16 +262,12 @@ func (o *Output) Serialize() []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, o.Value)
 	serialized = append(serialized, buf...)
-	serialized = append(serialized, o.ScriptPubKey.Serialize()...)
+	serializedScriptPubKey, err := o.ScriptPubKey.Serialize()
+	if err != nil {
+		return nil
+	}
+	serialized = append(serialized, serializedScriptPubKey...)
 	return serialized
-}
-
-func ParseScriptPubKey(reader io.Reader) (*ScriptPubKey, error) {
-	return &ScriptPubKey{}, nil
-}
-
-func (s *ScriptPubKey) Serialize() []byte {
-	return nil
 }
 
 type TransactionFetcher struct {
