@@ -17,6 +17,7 @@ const (
 	s256pHex  = "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"
 	s256gxHex = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
 	s256gyHex = "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+	s256nHex  = "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
 )
 
 type Secp256k1Point struct {
@@ -160,4 +161,17 @@ func NewSecp256k1G() Secp256k1Point {
 	gy, _ := new(big.Int).SetString(s256gyHex, 16)
 
 	return NewSecp256k1Point(gx, gy)
+}
+
+func NewSecp256k1n() *big.Int {
+	s256n, _ := new(big.Int).SetString(s256nHex, 16)
+
+	return s256n
+}
+
+func NewSecp256k1nHalf() *big.Int {
+	s256n := NewSecp256k1n()
+	s256nHalf := new(big.Int).Rsh(s256n, 1)
+
+	return s256nHalf
 }

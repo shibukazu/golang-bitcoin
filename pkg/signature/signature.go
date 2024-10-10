@@ -45,7 +45,9 @@ func (s *Signature) Serialize() []byte {
 	}
 	sbin = append([]byte{0x02, byte(len(sbin))}, sbin...)
 
-	return append(marker, append(rbin, sbin...)...)
+	remainLen := len(rbin) + len(sbin)
+
+	return append(append(append(marker, byte(remainLen)), rbin...), sbin...)
 }
 
 func ParseSignature(signature []byte) (*Signature, error) {

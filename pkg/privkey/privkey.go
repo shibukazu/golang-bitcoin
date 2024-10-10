@@ -31,19 +31,58 @@ func (p PrivKey) Sign(z *big.Int) *signature.Signature {
 	var k *big.Int
 	var err error
 	for r == nil || r.Sign() == 0 {
-		k, err = rand.Int(rand.Reader, secp256k1.NewSecp256p())
+		k, err = rand.Int(rand.Reader, secp256k1.NewSecp256k1n())
 		if err != nil {
 			panic(err)
 		}
 		R := secp256k1.NewSecp256k1G().Multiply(k)
 		r = R.X()
+		r.Mod(r, secp256k1.NewSecp256k1n())
 	}
 
-	invK := new(big.Int).ModInverse(k, secp256k1.NewSecp256p())
+	invK := new(big.Int).ModInverse(k, secp256k1.NewSecp256k1n())
+
 	re := new(big.Int).Mul(p.secret, r)
-	re.Add(re, z)
-	s := new(big.Int).Mul(re, invK)
-	s.Mod(s, secp256k1.NewSecp256p())
+	re.Mod(re, secp256k1.NewSecp256k1n())
+
+	rez := new(big.Int).Add(re, z)
+	rez.Mod(rez, secp256k1.NewSecp256k1n())
+
+	s := new(big.Int).Mul(rez, invK)
+	s.Mod(s, secp256k1.NewSecp256k1n())
+
+	if s.Cmp(secp256k1.NewSecp256k1nHalf()) == 1 {
+		s = new(big.Int).Sub(secp256k1.NewSecp256k1n(), s)
+	}
+
+	return signature.NewSignature(r, s)
+}
+
+func (p PrivKey) SignWithK(z *big.Int, k *big.Int) *signature.Signature {
+	R := secp256k1.NewSecp256k1G().Multiply(k)
+	r := R.X()
+
+	// rが0の場合は例外処理が必要
+	if r.Sign() == 0 {
+		panic("r is 0, invalid signature")
+	}
+
+	// kの逆数を計算
+	invK := new(big.Int).ModInverse(k, secp256k1.NewSecp256k1n())
+
+	// rez = (p.secret * r + z) mod p
+	rez := new(big.Int).Add(new(big.Int).Mul(p.secret, r), z)
+	rez.Mod(rez, secp256k1.NewSecp256k1n())
+
+	// s = rez * invK mod p
+	s := new(big.Int).Mul(rez, invK)
+	s.Mod(s, secp256k1.NewSecp256k1n())
+
+	if s.Cmp(secp256k1.NewSecp256k1nHalf()) == 1 {
+		s = new(big.Int).Sub(secp256k1.NewSecp256k1n(), s)
+	}
+
+	// 署名を生成
 	return signature.NewSignature(r, s)
 }
 
