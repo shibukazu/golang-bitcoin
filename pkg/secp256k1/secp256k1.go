@@ -36,12 +36,12 @@ func NewSecp256k1Point(x, y *big.Int) Secp256k1Point {
 }
 
 func (p Secp256k1Point) Verify(z *big.Int, sig signature.Signature) bool {
-	s256p, _ := new(big.Int).SetString(s256pHex, 16)
-	invS := new(big.Int).ModInverse(sig.S(), s256p)
+	s256n := NewSecp256k1n()
+	invS := new(big.Int).ModInverse(sig.S(), s256n)
 	u := new(big.Int).Mul(z, invS)
-	u.Mod(u, s256p)
+	u.Mod(u, s256n)
 	v := new(big.Int).Mul(sig.R(), invS)
-	v.Mod(v, s256p)
+	v.Mod(v, s256n)
 
 	s256G := NewSecp256k1G()
 	total := s256G.Multiply(u).Add(p.Multiply(v))

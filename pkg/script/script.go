@@ -212,6 +212,7 @@ func NewP2PKHScriptPubkey(address string) (*Script, error) {
 
 func NewScriptSig(serializedSignature, serializedPubkey []byte) *Script {
 	script := NewScript()
+	serializedSignature = append(serializedSignature, byte(1))
 	script.Instructions = append(script.Instructions, serializedSignature)
 	script.Instructions = append(script.Instructions, serializedPubkey)
 	return script
